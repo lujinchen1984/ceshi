@@ -31,6 +31,7 @@ export default function Car(props) {
     //初始化场景
     function initSence(scene,width,height){
         
+        
         //相机参数
         const width_canvas=width/2
         const height_canvas=height/2
