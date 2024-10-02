@@ -4,6 +4,7 @@ import Car from '../../components/Car'
 import Paf_CMM from '../../components/Paf_CMM';
 import VMTdata from '../../components/VMTdata';
 import Partdata from '../../components/Partdata';
+import ClickTest from '../../components/ClickTest';
 
 
 export default function Mainpage() {
@@ -13,8 +14,8 @@ export default function Mainpage() {
   }
   return (
     <>
-      <Car getPname={getPname}/>
-      <Paf_CMM Pname={Pname}/>
+      <ClickTest/>
+      
        
     </>
   )
