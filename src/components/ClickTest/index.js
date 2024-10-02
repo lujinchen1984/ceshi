@@ -119,6 +119,12 @@ export default function ClickTest() {
                 
                 // 将箭头添加到场景中
                 scene.add(arrow);
+
+                // 设置目标点，即旋转中心
+                orbitControls.target = position;
+                
+                // 更新控制器以反映新的目标点
+                orbitControls.update();
             }
             
         }
