@@ -11,19 +11,15 @@ export default function ClickTest() {
     const [width,setWidth]=useState(window.innerWidth)
     const [height,setHeight]=useState(window.innerHeight)
     let onPointerMove,onDocumentMouseDown,INTERSECTED,SELECTED,objects=[]
-    let raycaster=new THREE.Raycaster()
-    let mouse=new THREE.Vector2()
-    
-    
-
+   
     useEffect(()=>{
         
         initSence(scene,width,height)
         initModel(scene)
 
         return()=>{
-            window.removeEventListener('mousemove',onPointerMove)
-            window.removeEventListener('mousedown',onDocumentMouseDown,false)
+            
+            window.removeEventListener('dblclick',onDocumentMouseDown,false)
         }
     },[window.innerWidth,window.innerHeight])
 
@@ -32,12 +28,16 @@ export default function ClickTest() {
         //相机参数
         const width_canvas=width
         const height_canvas=height
-        //const camera=new THREE.PerspectiveCamera(60,width_canvas / height_canvas,1,10000)
-        const k = width / height; //canvas画布宽高比
-        const s = 2000; // 显示控制系数。
-        const camera = new THREE.OrthographicCamera( -s*k, k*s, s, -s, -2000, 2000 );
-        camera.position.set(800,800,800)
-        
+        const camera=new THREE.PerspectiveCamera(60,width_canvas / height_canvas,1,10000)
+        // const k = width / height; //canvas画布宽高比
+        // const s = 2000; // 显示控制系数。
+        // const camera = new THREE.OrthographicCamera( -s*k, k*s, s, -s, -2000, 2000 );
+        camera.position.set(0,0,3000)
+        //正交投影照相机
+       
+         //照相机帮助线
+        //var cameraHelper = new THREE.CameraHelper(camera2);
+        //scene.add(cameraHelper);
         //场景
         const renderer=new THREE.WebGLRenderer({
             canvas:document.getElementById('containercanvas')
@@ -74,24 +74,28 @@ export default function ClickTest() {
         scene.add(gridHelper)
 
         //环境光
-        const ambiColor="#0c0c0c"
-        const ambienLight=new THREE.AmbientLight(ambiColor)
-        scene.add(ambienLight)
+        // const ambiColor="#0c0c0c"
+        // const ambienLight=new THREE.AmbientLight(ambiColor)
+        // scene.add(ambienLight)
         //平行光
         const directionLight=new THREE.DirectionalLight(0xFFFFFF,2)
-        directionLight.position.set(2000,2000,2000)
+        directionLight.position.set(1000,1000,1000)
         scene.add(directionLight)
         const directionLightHelper=new THREE.DirectionalLightHelper(directionLight,100,0xff0000)
         scene.add(directionLightHelper)
-        const orbitControls=new OrbitControls(camera,document.getElementById('containercanvas'))
-        
-        // //交互
-       
-
-        document.addEventListener('mousedown',onDocumentMouseDown,false)
-        
-
-
+        const directionLight2=new THREE.DirectionalLight(0xFFFFFF,2)
+        directionLight2.position.set(1000,1000,-1000)
+        scene.add(directionLight2)
+        const directionLightHelper2=new THREE.DirectionalLightHelper(directionLight2,100,0xff0000)
+        scene.add(directionLightHelper2)
+        //创建均匀照明的光源
+        // const light = new THREE.HemisphereLight(0xffffff, 0x444444);
+        // light.position.set(0, 0, 10000);
+        // scene.add(light);
+ 
+        const orbitControls=new OrbitControls(camera,document.getElementById('containercanvas'))       
+        //交互      
+        document.addEventListener('dblclick',onDocumentMouseDown,false)     
         function onDocumentMouseDown(event){
             const raycaster = new THREE.Raycaster();
             const mouse = new THREE.Vector2();     
@@ -104,8 +108,7 @@ export default function ClickTest() {
             const intersects = raycaster.intersectObjects(scene.children);            
             if (intersects.length > 0) {
                 // 取第一个交点
-                const intersection = intersects[0];
-        
+                const intersection = intersects[0];     
                 // 获取交点的坐标
                 const position = intersection.point;
                 console.log('Clicked position:', position);
@@ -120,11 +123,38 @@ export default function ClickTest() {
                 // 将箭头添加到场景中
                 scene.add(arrow);
 
-                // 设置目标点，即旋转中心
-                orbitControls.target = position;
+                // // 设置目标点，即旋转中心
+                // orbitControls.target = position;
                 
-                // 更新控制器以反映新的目标点
-                orbitControls.update();
+                // // 更新控制器以反映新的目标点
+                // orbitControls.update();
+                // //3.创建物体
+                // const sphereGeometry = new THREE.SphereGeometry(20)
+                
+                // const sphereMaterail = new THREE.MeshNormalMaterial()
+                // const sphere = new THREE.Mesh(sphereGeometry, sphereMaterail)
+                // sphere.position.set(position.x+normal.x*1000,position.y+normal.y*1000,position.z+normal.z*1000)
+                // scene.add(sphere)
+
+                // camera.position.set(position.x+normal.x*1000,position.y+normal.y*1000,position.z+normal.z*1000)
+                // camera.lookAt(position)
+
+                const targetTween=new TWEEN.Tween(orbitControls.target)
+                .to({x:position.x,y:position.y,z:position.z},1000)
+                .easing(TWEEN.Easing.Quadratic.InOut)
+                .onUpdate(()=>{
+                    orbitControls.update()
+                    
+                })
+                .start()
+                const cameraTween=new TWEEN.Tween(camera.position)
+                .to({x:position.x+normal.x*1000,y:position.y+normal.y*1000,z:position.z+normal.z*1000},1000)
+                .easing(TWEEN.Easing.Quadratic.InOut)
+                .onUpdate(()=>{
+                    orbitControls.update()
+                    
+                })
+                .start()
             }
             
         }
