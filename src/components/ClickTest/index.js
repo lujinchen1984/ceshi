@@ -108,14 +108,17 @@ export default function ClickTest() {
             const intersects = raycaster.intersectObjects(scene.children);            
             if (intersects.length > 0) {
                 // 取第一个交点
-                const intersection = intersects[0];     
+                const intersection = intersects[0];    
+                //取第二个交点 
+                const intersection1 = intersects[1]; 
                 // 获取交点的坐标
                 const position = intersection.point;
-                console.log('Clicked position:', position);
+                const position1 = intersection1.point;
+                console.log('Clicked position:', position,position1);
         
                 // 获取交点的法向量
                 const normal = intersection.face.normal;
-                console.log('Clicked normal:', normal);
+                //console.log('Clicked normal:', normal);
                 var color = 0x0000ff; // 箭头颜色
                 // 创建ArrowHelper对象
                 var arrow = new THREE.ArrowHelper(normal, position, 100, color); // 1表示箭头的长度为1单位
@@ -167,7 +170,13 @@ export default function ClickTest() {
         animate()
      
     }
-    const initModel=(scene)=>{        
+    const initModel=(scene)=>{    
+        var planegeometry = new THREE.PlaneGeometry(2000, 2000, 10);    
+        var planematerial = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+        var plane = new THREE.Mesh(planegeometry, planematerial);
+        // 设置平面位置
+        plane.position.set(0, 0, 600);
+        scene.add(plane);
         //加载数模
         const objLoader=new OBJLoader()
         objLoader.load(
