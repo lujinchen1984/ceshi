@@ -5,6 +5,7 @@ import Paf_CMM from '../../components/Paf_CMM';
 import VMTdata from '../../components/VMTdata';
 import Partdata from '../../components/Partdata';
 import ClickTest from '../../components/ClickTest';
+import Camera from '../../components/Camera';
 
 
 export default function Mainpage() {
@@ -14,7 +15,7 @@ export default function Mainpage() {
   }
   return (
     <>
-      <ClickTest/>
+      <Camera/>
       
        
     </>

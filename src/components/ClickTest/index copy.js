@@ -10,16 +10,16 @@ export default function ClickTest() {
     const scene=new THREE.Scene()
     const [width,setWidth]=useState(window.innerWidth)
     const [height,setHeight]=useState(window.innerHeight)
-    let onPointerMove,INTERSECTED,SELECTED,camera,orbitControls,objects=[]
-    
+    let onPointerMove,onDocumentMouseDown,INTERSECTED,SELECTED,objects=[]
+   
     useEffect(()=>{
         
         initSence(scene,width,height)
         initModel(scene)
-        document.addEventListener('dblclick', onDocumentMouseDown);
+
         return()=>{
             
-            window.removeEventListener('dblclick',onDocumentMouseDown)
+            window.removeEventListener('dblclick',onDocumentMouseDown,false)
         }
     },[window.innerWidth,window.innerHeight])
 
@@ -95,7 +95,106 @@ export default function ClickTest() {
  
         const orbitControls=new OrbitControls(camera,document.getElementById('containercanvas'))       
         //交互      
+        document.addEventListener('dblclick',onDocumentMouseDown,false)  
+
+        function onDocumentMouseDown(event){
+            const raycaster = new THREE.Raycaster();
+            const mouse = new THREE.Vector2();     
+            // 将鼠标位置转换成归一化设备坐标(-1 到 +1)
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;           
+            // 使用鼠标位置和相机进行射线投射
+            raycaster.setFromCamera(mouse, camera);           
+            // 计算物体和射线的交点
+            const intersects = raycaster.intersectObjects(scene.children);            
+            if (intersects.length > 0) {
+                // 取第一个交点
+                const intersection = intersects[0];    
+                //取第二个交点 
+                //const intersection1 = intersects[1]; 
+                // 获取交点的坐标
+                const position = intersection.point;
+                //const position1 = intersection1.point;
+                console.log('Clicked position:', position,position);
+                // 使用 distanceTo() 方法计算两点之间的距离
+                // var distance = position.distanceTo(position1);
+                // console.log(distance)
         
+                // 获取交点的法向量
+                const normal = intersection.face.normal;
+                console.log('Clicked normal:', normal);
+                var color = 0x0000ff; // 箭头颜色
+                // 创建ArrowHelper对象
+                var arrow = new THREE.ArrowHelper(normal, position, 100, color); // 1表示箭头的长度为1单位
+                //var arrow1 = new THREE.ArrowHelper(normal, position1, 100, color); // 1表示箭头的长度为1单位
+                // 将箭头添加到场景中
+                //scene.add(arrow);
+                //scene.add(arrow1);
+
+             
+                const targetTween=new TWEEN.Tween(orbitControls.target)
+                .to({x:position.x,y:position.y,z:position.z},1000)
+                .easing(TWEEN.Easing.Quadratic.InOut)
+                .onUpdate(()=>{
+                    orbitControls.update()
+                    
+                })
+                .start()
+                const cameraTween=new TWEEN.Tween(camera.position)
+                .to({x:position.x+normal.x*1000,y:position.y+normal.y*1000,z:position.z+normal.z*1000},1000)
+                .easing(TWEEN.Easing.Quadratic.InOut)
+                .onUpdate(()=>{
+                    orbitControls.update()
+                    
+                })
+                .start()
+                camera.position.set(position.x+normal.x*1000,position.y+normal.y*1000,position.z+normal.z*1000)
+                // 创建一条直线
+                var startpoint=new THREE.Vector3(position.x+normal.x*-10,position.y+normal.y*-10,position.z+normal.z*-10)
+                var endpoint=new THREE.Vector3(position.x+normal.x*10,position.y+normal.y*10,position.z+normal.z*10)
+                var lineGeometry = new THREE.BufferGeometry().setFromPoints([startpoint, endpoint]);
+                var lineMaterial = new THREE.LineBasicMaterial({ color: 0xffffff });
+                var line = new THREE.Line(lineGeometry, lineMaterial);
+                scene.add(line);
+                // 创建射线投射器
+                var raycaster2 = new THREE.Raycaster(startpoint, normal);
+                
+                // 计算交点
+                var intersects2 = raycaster2.intersectObjects(scene.children);
+                
+                // intersects是交点数组，包含了交点的详细信息，如点的位置、面的法线等
+                // intersects2.forEach(function(intersect2) {
+                //     console.log(intersect2.point); // 输出交点位置
+                // });
+                if (intersects2.length > 0) {
+                    console.log(intersects2[0].point)
+                    // console.log(intersects2[1].point)
+                }
+                
+                // 计算交点
+                
+                // intersects3.forEach(function(intersect3) {
+                //     console.log(intersect3.point); // 输出交点位置
+                // });
+                
+                // 如果需要反向的交点，只需要反转raycaster的方向即可
+                
+                // 使用raycaster计算交点
+                // var raycaster2 = new THREE.Raycaster(position, normal);
+                
+                // 假设你有一个模型(model)加载到了场景中
+                // 遍历模型的所有面
+                // var intersects2 = raycaster2.intersectObjects(scene.children, true);
+                
+                // 输出交点信息
+                // console.log(intersects2[0].point)
+                // console.log(intersects2[2].point)
+                // var distance2 = position.distanceTo(intersects[1].point);
+                // console.log(distance2)
+            }
+            
+        }
+
         const animate=function(){
             requestAnimationFrame(animate)
             TWEEN.update()
@@ -109,20 +208,20 @@ export default function ClickTest() {
         var planematerial = new THREE.MeshBasicMaterial({ color: 0x00ff00,side: THREE.DoubleSide });
         var plane = new THREE.Mesh(planegeometry, planematerial);
         plane.position.set(0, 0, 0);
-        //scene.add(plane);
+        scene.add(plane);
         var planegeometry1 = new THREE.PlaneGeometry(2000, 2000, 1);    
         var planematerial1 = new THREE.MeshBasicMaterial({ color: 0xff0000,side: THREE.DoubleSide });
         var plane1 = new THREE.Mesh(planegeometry1, planematerial1);
         // 设置平面位置
         plane1.position.set(0, 0, 5);
-        //scene.add(plane1);
+        scene.add(plane1);
         //加载数模
         const objLoader=new OBJLoader()
         objLoader.load(
             '/static/mymodel/MH AMG_stp.obj',
             function(object){             
                 //object.rotateX(-Math.PI/2)                
-                scene.add(object)
+                //scene.add(object)
                 // 设置材质为线框模式
                 object.traverse((child) => {
                     if (child.isMesh) {
@@ -140,85 +239,7 @@ export default function ClickTest() {
         
         
     }
-    function onDocumentMouseDown(event){
-        console.log('dclick')
-        const raycaster = new THREE.Raycaster();
-        const mouse = new THREE.Vector2();     
-        // 将鼠标位置转换成归一化设备坐标(-1 到 +1)
-        mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-        mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;           
-        // 使用鼠标位置和相机进行射线投射
-        raycaster.setFromCamera(mouse, camera);           
-        // 计算物体和射线的交点
-        const intersects = raycaster.intersectObjects(scene.children);            
-        if (intersects.length > 0) {
-            // 取第一个交点
-            const intersection = intersects[0];    
-            //取第二个交点 
-            //const intersection1 = intersects[1]; 
-            // 获取交点的坐标
-            const position = intersection.point;
-            //const position1 = intersection1.point;
-            console.log('Clicked position:', position,position);
-            // 使用 distanceTo() 方法计算两点之间的距离
-            // var distance = position.distanceTo(position1);
-            // console.log(distance)
-    
-            // 获取交点的法向量
-            const normal = intersection.face.normal;
-            console.log('Clicked normal:', normal);
-            var color = 0x0000ff; // 箭头颜色
-            // 创建ArrowHelper对象
-            var arrow = new THREE.ArrowHelper(normal, position, 100, color); // 1表示箭头的长度为1单位
-            //var arrow1 = new THREE.ArrowHelper(normal, position1, 100, color); // 1表示箭头的长度为1单位
-            // 将箭头添加到场景中
-            //scene.add(arrow);
-            //scene.add(arrow1);
 
-            
-            const targetTween=new TWEEN.Tween(orbitControls.target)
-            .to({x:position.x,y:position.y,z:position.z},1000)
-            .easing(TWEEN.Easing.Quadratic.InOut)
-            .onUpdate(()=>{
-                orbitControls.update()
-                
-            })
-            .start()
-            const cameraTween=new TWEEN.Tween(camera.position)
-            .to({x:position.x+normal.x*1000,y:position.y+normal.y*1000,z:position.z+normal.z*1000},1000)
-            .easing(TWEEN.Easing.Quadratic.InOut)
-            .onUpdate(()=>{
-                orbitControls.update()
-                
-            })
-            .start()
-            camera.position.set(position.x+normal.x*1000,position.y+normal.y*1000,position.z+normal.z*1000)
-            // 创建一条直线
-            var startpoint=new THREE.Vector3(position.x+normal.x*-10,position.y+normal.y*-10,position.z+normal.z*-10)
-            var endpoint=new THREE.Vector3(position.x+normal.x*10,position.y+normal.y*10,position.z+normal.z*10)
-            var lineGeometry = new THREE.BufferGeometry().setFromPoints([startpoint, endpoint]);
-            var lineMaterial = new THREE.LineBasicMaterial({ color: 0xffffff });
-            var line = new THREE.Line(lineGeometry, lineMaterial);
-            scene.add(line);
-            // 创建射线投射器
-            var raycaster2 = new THREE.Raycaster(startpoint, normal);
-            
-            // 计算交点
-            var intersects2 = raycaster2.intersectObjects(scene.children);
-            
-            // intersects是交点数组，包含了交点的详细信息，如点的位置、面的法线等
-            // intersects2.forEach(function(intersect2) {
-            //     console.log(intersect2.point); // 输出交点位置
-            // });
-            if (intersects2.length > 0) {
-                console.log(intersects2[0].point)
-                // console.log(intersects2[1].point)
-            }
-        }
-    }
-    
-    // 监听鼠标移动事件
-    
   return (
     <div id='container'><canvas id='containercanvas' ></canvas></div>
     
