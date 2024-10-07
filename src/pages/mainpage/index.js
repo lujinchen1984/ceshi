@@ -6,6 +6,7 @@ import VMTdata from '../../components/VMTdata';
 import Partdata from '../../components/Partdata';
 import ClickTest from '../../components/ClickTest';
 import Camera from '../../components/Camera';
+import ThreeDemo from '../../components/ThreeDemo';
 
 
 export default function Mainpage() {
