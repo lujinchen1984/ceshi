@@ -40,7 +40,7 @@ export default function Camera() {
         //orbitControls.enableZoom = false;//禁止缩放
 
         //透视投影相机：相机距离目标观察点距离越远显示越小，距离越近显示越大
-        orbitControls.enableRotate = false; // 禁止旋转
+        //orbitControls.enableRotate = false; // 禁止旋转
         //相机距离观察目标点极小距离——模型最大状态
         orbitControls.minDistance = 2000;
         //相机距离观察目标点极大距离——模型最小状态
@@ -172,6 +172,24 @@ export default function Camera() {
                     // 使用distanceTo方法计算两点之间的距离
                     const distance = position.distanceTo(intersects2[0].point);
                     console.log('偏差：'+distance)
+                    // 创建一个HTML元素
+                    const label = document.createElement('div');
+                    label.style.position = 'absolute';
+                    label.style.color = 'white';
+                    label.textContent = 'Hello, World!';
+                      // 计算HTML元素的屏幕位置并设置
+                    const object = intersection.object; // 被点击的3D物体
+                    const worldPosition = new THREE.Vector3();
+                    worldPosition.setFromMatrixPosition(object.matrixWorld);
+                    const height = 50; // 标签的高度
+                    const screenPosition = position;
+                    screenPosition.project(camera);
+                
+                    label.style.left = ((screenPosition.x + 1) / 2 * window.innerWidth) + 'px';
+                    label.style.top = ((-screenPosition.y + 1) / 2 * window.innerHeight) + 'px';
+                
+                    // 将HTML元素添加到文档中
+                    document.body.appendChild(label);
                 }
             }
         }
