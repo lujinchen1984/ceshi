@@ -6,8 +6,13 @@ import {OBJLoader} from 'three/examples/jsm/loaders/OBJLoader'
 //导入hdr图像加载器
 import { RGBELoader } from "three/examples/jsm/loaders/RGBELoader";//rebe加载器
 import './index.css'
+import { GUI } from 'three/examples/jsm/libs/lil-gui.module.min.js';
+import {
+    CSS2DRenderer,
+    CSS2DObject,
+} from "three/examples/jsm/renderers/CSS2DRenderer.js";
 
-export default function Camera() {
+export default function DataView() {
     var orbitControls=null
     const scene=new THREE.Scene()
     const [width,setWidth]=useState(window.innerWidth)
@@ -29,14 +34,39 @@ export default function Camera() {
 
     //初始化场景
     function initSence(scene){   
-        
+
         const renderer=new THREE.WebGLRenderer({
             canvas:document.getElementById('containercanvas')
         })
         renderer.setSize(width_canvas , height_canvas)
-        renderer.setClearColor('#000',.5)       
+        renderer.setClearColor('#000',.5)     
+        // //CSS2D渲染器
+        const labelRenderer = new CSS2DRenderer();
+        //将渲染器的尺寸调整为(width, height).
+        labelRenderer.setSize( window.innerWidth, window.innerHeight );
+        labelRenderer.domElement.style.position = 'absolute';
+        labelRenderer.domElement.style.top = '0px';
+        document.body.appendChild( labelRenderer.domElement );
+  
         //交互      
-        let orbitControls=new OrbitControls(camera,document.getElementById('containercanvas'))
+        let orbitControls=new OrbitControls(camera,labelRenderer.domElement)
+        // 创建GUI并添加相机属性
+        const gui = new GUI();
+        
+        gui.add(camera.position, 'x').min(-10).max(10).step(0.01).name('Camera X');
+        gui.add(camera.position, 'y').min(-10).max(10).step(0.01).name('Camera Y');
+        gui.add(camera.position, 'z').min(-10).max(10).step(0.01).name('Camera Z');
+
+        // 获取GUI div的引用
+        var guiDom = gui.domElement;
+        
+        // 设置CSS样式来调整位置
+        guiDom.style.position = 'absolute';
+        guiDom.style.left = '20px'; // 根据需要调整到所需的水平位置
+        guiDom.style.top = '80px'; // 根据需要调整到所需的垂直位置
+        
+        // 将GUI添加到你的DOM中
+        
         //orbitControls.enableZoom = false;//禁止缩放
 
         //透视投影相机：相机距离目标观察点距离越远显示越小，距离越近显示越大
@@ -50,16 +80,25 @@ export default function Camera() {
         orbitControls.maxAzimuthAngle = Math.PI/2;
         orbitControls.enableDamping = true
         orbitControls.dampingFactor = 0.03
-    
+        
+
         
         const animate=function(){
             requestAnimationFrame(animate)
             TWEEN.update()
             renderer.render(scene,camera)
             orbitControls.update()
+            labelRenderer.render(scene,camera)
+
+            
             
         }
         camera.position.set(0,0,3000)
+        camera.layers.enableAll();
+        
+    
+    
+    
         // 监听画面变化，更新渲染画面
         window.addEventListener("resize", () => {
             //   console.log("画面变化了");
@@ -105,6 +144,7 @@ export default function Camera() {
         // light.position.set(0, 0, 10000);
         // scene.add(light);       
         animate()
+
         window.addEventListener('dblclick', mouseClick, false)
         function mouseClick(event) {
             console.log('dclick')
@@ -137,26 +177,7 @@ export default function Camera() {
                     orbitControls.target.set(position.x,position.y,position.z)
                     orbitControls.update()
                 }
-                
-                // const targetTween=new TWEEN.Tween(orbitControls.target)
-                // .to({x:position.x,y:position.y,z:position.z},1000)
-                // .easing(TWEEN.Easing.Quadratic.InOut)
-                // .onUpdate(()=>{
-                    
-                //     orbitControls.update()
-                    
-                    
-                // })
-                // .start()
-                // const cameraTween=new TWEEN.Tween(camera.position)
-                // .to({x:position.x+normal.x*1000,y:position.y+normal.y*1000,z:position.z+normal.z*1000},1000)
-                // .easing(TWEEN.Easing.Quadratic.InOut)
-                // .onUpdate(()=>{
-                //     orbitControls.update()
-                    
-                // })
-                // .start()
-              
+
                 // 创建一条直线
                 var startpoint=new THREE.Vector3(position.x+normal.x*-10,position.y+normal.y*-10,position.z+normal.z*-10)
                 var endpoint=new THREE.Vector3(position.x+normal.x*10,position.y+normal.y*10,position.z+normal.z*10)
@@ -172,24 +193,22 @@ export default function Camera() {
                     // 使用distanceTo方法计算两点之间的距离
                     const distance = position.distanceTo(intersects2[0].point);
                     console.log('偏差：'+distance)
-                    // 创建一个HTML元素
-                    const label = document.createElement('div');
-                    label.style.position = 'absolute';
-                    label.style.color = 'white';
-                    label.textContent = 'Hello, World!';
-                      // 计算HTML元素的屏幕位置并设置
-                    const object = intersection.object; // 被点击的3D物体
-                    const worldPosition = new THREE.Vector3();
-                    worldPosition.setFromMatrixPosition(object.matrixWorld);
-                    const height = 50; // 标签的高度
-                    const screenPosition = position;
-                    screenPosition.project(camera);
+                    // //创建 css的里显示的部分
+                    const earthDiv = document.createElement( 'div' );
+                    earthDiv.className = 'label';
+                    earthDiv.textContent = 'Earth';
+                    earthDiv.style.backgroundColor = 'transparent';
+                    //创建CSS2DObject实例
+                    const earthLabel = new CSS2DObject( earthDiv );
+                    earthLabel.position.set( position );
+                    earthLabel.center.set( 0, 1 );
+                    intersects2[0].object.add( earthLabel );
+                    earthLabel.layers.set( 0 );//设层级
                 
-                    label.style.left = ((screenPosition.x + 1) / 2 * window.innerWidth) + 'px';
-                    label.style.top = ((-screenPosition.y + 1) / 2 * window.innerHeight) + 'px';
                 
-                    // 将HTML元素添加到文档中
-                    document.body.appendChild(label);
+                
+
+                    
                 }
             }
         }
@@ -239,7 +258,11 @@ export default function Camera() {
     // 监听鼠标移动事件
     
   return (
+    <>
+
     <div id='container'><canvas id='containercanvas' ></canvas></div>
+    </>
+    
     
   )
 }
