@@ -16,7 +16,7 @@ export default function DataView() {
     var orbitControls=null
     const scene=new THREE.Scene()
     const [width,setWidth]=useState(window.innerWidth)
-    const [height,setHeight]=useState(window.innerHeight)
+    const [height,setHeight]=useState(window.innerHeight-120)
     //相机参数
     const width_canvas=width
     const height_canvas=height  
@@ -43,7 +43,7 @@ export default function DataView() {
         // //CSS2D渲染器
         const labelRenderer = new CSS2DRenderer();
         //将渲染器的尺寸调整为(width, height).
-        labelRenderer.setSize( window.innerWidth, window.innerHeight );
+        labelRenderer.setSize( window.innerWidth, window.innerHeight-120 );
         labelRenderer.domElement.style.position = 'absolute';
         labelRenderer.domElement.style.top = '0px';
         document.body.appendChild( labelRenderer.domElement );
@@ -105,12 +105,12 @@ export default function DataView() {
             // 更新摄像头
             setHeight(window.innerHeight)
             setWidth(window.innerWidth)
-            camera.aspect = (window.innerWidth) / (window.innerHeight);
+            camera.aspect = (window.innerWidth) / (window.innerHeight-120);
             //   更新摄像机的投影矩阵
             camera.updateProjectionMatrix();
         
             //   更新渲染器
-            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setSize(window.innerWidth, window.innerHeight-120);
             //   设置渲染器的像素比
             renderer.setPixelRatio(window.devicePixelRatio);
             
@@ -153,7 +153,7 @@ export default function DataView() {
             const mouse = new THREE.Vector2();     
             // 将鼠标位置转换成归一化设备坐标(-1 到 +1)
             mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;           
+            mouse.y = -((event.clientY-65)/ (window.innerHeight-120)) * 2 + 1;           
             // 使用鼠标位置和相机进行射线投射
             raycaster.setFromCamera(mouse, camera);           
             // 计算物体和射线的交点
@@ -184,6 +184,7 @@ export default function DataView() {
                 var lineGeometry = new THREE.BufferGeometry().setFromPoints([startpoint, endpoint]);
                 var lineMaterial = new THREE.LineBasicMaterial({ color: 0xffffff });
                 var line = new THREE.Line(lineGeometry, lineMaterial);
+                
                 scene.add(line);
                 // 创建射线投射器
                 var raycaster2 = new THREE.Raycaster(startpoint, normal);           
@@ -193,17 +194,8 @@ export default function DataView() {
                     // 使用distanceTo方法计算两点之间的距离
                     const distance = position.distanceTo(intersects2[0].point);
                     console.log('偏差：'+distance)
-                    // //创建 css的里显示的部分
-                    const earthDiv = document.createElement( 'div' );
-                    earthDiv.className = 'label';
-                    earthDiv.textContent = 'Earth';
-                    earthDiv.style.backgroundColor = 'transparent';
-                    //创建CSS2DObject实例
-                    const earthLabel = new CSS2DObject( earthDiv );
-                    earthLabel.position.set( position );
-                    earthLabel.center.set( 0, 1 );
-                    intersects2[0].object.add( earthLabel );
-                    earthLabel.layers.set( 0 );//设层级
+                    initLabel(line,distance.toFixed(2),startpoint)
+                    
                 
                 
                 
@@ -223,6 +215,7 @@ export default function DataView() {
         var planegeometry1 = new THREE.PlaneGeometry(2000, 2000, 1);    
         var planematerial1 = new THREE.MeshBasicMaterial({ color: 0xff0000,side: THREE.DoubleSide });
         var plane1 = new THREE.Mesh(planegeometry1, planematerial1);
+        
         // 设置平面位置
         plane1.position.set(0, 0, 5);
         scene.add(plane1);
@@ -250,7 +243,25 @@ export default function DataView() {
         
         
     }
-    // 鼠标点击事件监听
+    // label
+    const initLabel=(object,result,position)=>{
+          // //创建 css的里显示的部分
+        const earthDiv = document.createElement( 'div' );
+        earthDiv.className = 'label';
+        earthDiv.textContent = result;
+        earthDiv.style.backgroundColor = 'yellow';
+        earthDiv.style.color = 'blue';
+        //创建CSS2DObject实例
+        const earthLabel = new CSS2DObject( earthDiv );
+        earthLabel.position.set(0,0,0);
+        earthLabel.center.set( 0, 1 );
+        object.add( earthLabel );
+        earthLabel.layers.set( 0 );//设层级
+    
+    
+    
+ 
+    }
     
 
     

@@ -33,7 +33,7 @@ const menuProps = {
 };
 const Mainpage = () => (
   <Layout className="layout">
-    <Header  style={{ textAlign: 'left' }}>
+    <Header  style={{ textAlign: 'left',height:'65px' }}>
       <Space>
         <div className="logo" />
         <Dropdown menu={menuProps}>
@@ -82,9 +82,10 @@ const Mainpage = () => (
     <Footer
       style={{
         textAlign: 'center',
+        height:'35px'
       }}
     >
-      Ant Design ©2018 Created by Ant UED
+      Design ©2018 Created by LJC
     </Footer>
   </Layout>
 );
