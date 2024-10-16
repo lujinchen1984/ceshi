@@ -72,14 +72,15 @@ export default function DataView() {
         //透视投影相机：相机距离目标观察点距离越远显示越小，距离越近显示越大
         //orbitControls.enableRotate = false; // 禁止旋转
         //相机距离观察目标点极小距离——模型最大状态
-        orbitControls.minDistance = 2000;
+        //orbitControls.minDistance = 2000;
         //相机距离观察目标点极大距离——模型最小状态
-        orbitControls.maxDistance = 4000;
-        // 左右旋转范围
-        orbitControls.minAzimuthAngle = -Math.PI/2;
-        orbitControls.maxAzimuthAngle = Math.PI/2;
+        // orbitControls.maxDistance = 4000;
+        // // 左右旋转范围
+        // orbitControls.minAzimuthAngle = -Math.PI/2;
+        // orbitControls.maxAzimuthAngle = Math.PI/2;
         orbitControls.enableDamping = true
         orbitControls.dampingFactor = 0.03
+        orbitControls.enablePan = false
         
 
         
@@ -148,6 +149,9 @@ export default function DataView() {
         window.addEventListener('dblclick', mouseClick, false)
         function mouseClick(event) {
             console.log('dclick')
+            // 标签对象和直线
+            let tagLabel;
+            let tagLine;
             console.log(camera.position.x,camera.position.y,camera.position.z)
             const raycaster = new THREE.Raycaster();
             const mouse = new THREE.Vector2();     
@@ -171,12 +175,13 @@ export default function DataView() {
                 var arrow = new THREE.ArrowHelper(normal, position, 100, color); // 1表示箭头的长度为1单位
                 // 将箭头添加到场景中
                 scene.add(arrow);           
-                camera.position.set(position.x+normal.x*1000,position.y+normal.y*1000,position.z+normal.z*1000)
-                console.log(orbitControls)
-                if(orbitControls!=null){
-                    orbitControls.target.set(position.x,position.y,position.z)
-                    orbitControls.update()
-                }
+                // camera.position.set(position.x+normal.x*1000,position.y+normal.y*1000,position.z+normal.z*1000)
+                // camera.lookAt(position.x,position.y,position.z)
+                //console.log(orbitControls)
+                // if(orbitControls!=null){
+                //     orbitControls.target.set(position.x,position.y,position.z)
+                //     orbitControls.update()
+                // }
 
                 // 创建一条直线
                 var startpoint=new THREE.Vector3(position.x+normal.x*-10,position.y+normal.y*-10,position.z+normal.z*-10)
@@ -194,7 +199,51 @@ export default function DataView() {
                     // 使用distanceTo方法计算两点之间的距离
                     const distance = position.distanceTo(intersects2[0].point);
                     console.log('偏差：'+distance)
-                    initLabel(line,distance.toFixed(2),startpoint)
+                    // initLabel(line,distance.toFixed(2),startpoint)
+                    // 创建标签
+                    tagLabel = document.createElement('div');
+                    tagLabel.style.position = 'absolute';
+                    tagLabel.style.color = 'white';
+                    tagLabel.style.padding = '5px';
+                    tagLabel.style.background = 'black';
+                    tagLabel.style.borderRadius = '5px';
+                    tagLabel.textContent = distance.toFixed(2);
+                    document.body.appendChild(tagLabel);
+                    // 将标签的位置设置为点击的3D位置
+                    const coords = intersects2[0].point;
+                    tagLabel.style.left = event.clientX+ 'px';
+                    tagLabel.style.top = event.clientY + 'px';
+                    // 使标签可拖动
+                    tagLabel.addEventListener('mousedown', function(event) {
+                    event.preventDefault();
+                    let offsetX = event.clientX - tagLabel.offsetLeft;
+                    let offsetY = event.clientY - tagLabel.offsetTop;
+                    function drag(event) {
+                        tagLabel.style.left = (event.clientX - offsetX) + 'px';
+                        tagLabel.style.top = (event.clientY - offsetY) + 'px';
+                    }
+                    function stopDrag() {
+                        document.removeEventListener('mousemove', drag);
+                        document.removeEventListener('mouseup', stopDrag);
+                        document.removeEventListener('mouseleave', stopDrag);
+                    }
+                    document.addEventListener('mousemove', drag);
+                    document.addEventListener('mouseup', stopDrag);
+                    document.addEventListener('mouseleave', stopDrag);
+                    });
+                
+                    // 计算标签和点击位置之间的直线
+                    if (tagLine) {
+                    scene.remove(tagLine);
+                    }
+                    tagLine = new THREE.Line(
+                    new THREE.BufferGeometry().setFromPoints([
+                        new THREE.Vector3(position.x, position.y, position.z),
+                        new THREE.Vector3(position.x, position.y + 0.5, position.z), // 假设标签在点击位置上方0.5单位处
+                    ]),
+                    new THREE.LineBasicMaterial({ color: 0xffffff })
+                    );
+                    scene.add(tagLine);
                     
                 
                 
@@ -246,6 +295,7 @@ export default function DataView() {
     // label
     const initLabel=(object,result,position)=>{
           // //创建 css的里显示的部分
+        console.log(position)
         const earthDiv = document.createElement( 'div' );
         earthDiv.className = 'label';
         earthDiv.textContent = result;
@@ -253,9 +303,9 @@ export default function DataView() {
         earthDiv.style.color = 'blue';
         //创建CSS2DObject实例
         const earthLabel = new CSS2DObject( earthDiv );
-        earthLabel.position.set(0,0,0);
-        earthLabel.center.set( 0, 1 );
-        object.add( earthLabel );
+        earthLabel.position.set(0,-120,0);
+        
+        scene.add( earthLabel );
         earthLabel.layers.set( 0 );//设层级
     
     
