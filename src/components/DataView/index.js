@@ -169,52 +169,52 @@ export default function DataView() {
         // 将光源助手添加到场景
         scene.add(pointLightHelper);
         RectAreaLightUniformsLib.init();
-        const rectLight1 = new THREE.RectAreaLight( 0xffffff, 1, 40, 1000 );
-        rectLight1.position.set( - 500, 500, 1000 );
+        const rectLight1 = new THREE.RectAreaLight( 0xffffff, 1, 40, 3000 );
+        rectLight1.position.set( - 500, 0, 1000 );
         scene.add( rectLight1 );
 
-        const rectLight2 = new THREE.RectAreaLight( 0xffffff, 1, 40, 1000 );
-        rectLight2.position.set( -400, 500, 1000 );
+        const rectLight2 = new THREE.RectAreaLight( 0xffffff, 1, 40, 3000 );
+        rectLight2.position.set( -400, 0, 1000 );
         scene.add( rectLight2 );
 
-        const rectLight3 = new THREE.RectAreaLight( 0xffffff,1, 40, 1000 );
-        rectLight3.position.set( -300, 500, 1000 );
+        const rectLight3 = new THREE.RectAreaLight( 0xffffff,1, 40, 3000 );
+        rectLight3.position.set( -300, 0, 1000 );
         scene.add( rectLight3 );
-        const rectLight4 = new THREE.RectAreaLight( 0xffffff, 1, 40, 1000 );
-        rectLight4.position.set( -200, 500, 1000 );
+        const rectLight4 = new THREE.RectAreaLight( 0xffffff, 1, 40, 3000 );
+        rectLight4.position.set( -200, 0, 1000 );
         scene.add( rectLight4 );
 
-        const rectLight5 = new THREE.RectAreaLight( 0xffffff, 1, 40, 1000 );
-        rectLight5.position.set( -100, 500, 1000 );
+        const rectLight5 = new THREE.RectAreaLight( 0xffffff, 1, 40, 3000 );
+        rectLight5.position.set( -100, 0, 1000 );
         scene.add( rectLight5 );
 
-        const rectLight6 = new THREE.RectAreaLight( 0xffffff,1, 40, 1000 );
-        rectLight6.position.set( 0, 500, 1000 );
+        const rectLight6 = new THREE.RectAreaLight( 0xffffff,1, 40, 3000 );
+        rectLight6.position.set( 0, 0, 1000 );
         scene.add( rectLight6 );
 
 
-        scene.add( new RectAreaLightHelper( rectLight1 ) );
-        scene.add( new RectAreaLightHelper( rectLight2 ) );
-        scene.add( new RectAreaLightHelper( rectLight3 ) );
-        scene.add( new RectAreaLightHelper( rectLight4 ) );
-        scene.add( new RectAreaLightHelper( rectLight5 ) );
-        scene.add( new RectAreaLightHelper( rectLight6 ) );
+        // scene.add( new RectAreaLightHelper( rectLight1 ) );
+        // scene.add( new RectAreaLightHelper( rectLight2 ) );
+        // scene.add( new RectAreaLightHelper( rectLight3 ) );
+        // scene.add( new RectAreaLightHelper( rectLight4 ) );
+        // scene.add( new RectAreaLightHelper( rectLight5 ) );
+        // scene.add( new RectAreaLightHelper( rectLight6 ) );
 
         
         animate()
 
     }
     function initModel(){
-        const geoFloor = new THREE.BoxGeometry( 2000, 0.1, 2000 );
-        const matStdFloor = new THREE.MeshStandardMaterial( { color: 0xbcbcbc, roughness: 0.1, metalness: 0 } );
-        const mshStdFloor = new THREE.Mesh( geoFloor, matStdFloor );
-        scene.add( mshStdFloor );
+        // const geoFloor = new THREE.BoxGeometry( 2000, 0.1, 2000 );
+        // const matStdFloor = new THREE.MeshStandardMaterial( { color: 0xbcbcbc, roughness: 0.1, metalness: 0 } );
+        // const mshStdFloor = new THREE.Mesh( geoFloor, matStdFloor );
+        // scene.add( mshStdFloor );
 
-        const geoKnot = new THREE.SphereGeometry( 200, 32, 16 ); 
-        const geometry = new THREE.PlaneGeometry( 1000, 1000 );
-        const matKnot = new THREE.MeshStandardMaterial( { color: 0xffffff, roughness: 0, metalness: 0 } );
-        let meshKnot = new THREE.Mesh( geometry, matKnot );
-        meshKnot.position.set( 0, 500, 800 );
+        // const geoKnot = new THREE.SphereGeometry( 200, 32, 16 ); 
+        // const geometry = new THREE.PlaneGeometry( 1000, 1000 );
+        // const matKnot = new THREE.MeshStandardMaterial( { color: 0xffffff, roughness: 0, metalness: 0 } );
+        // let meshKnot = new THREE.Mesh( geometry, matKnot );
+        // meshKnot.position.set( 0, 500, 800 );
         //scene.add( meshKnot );
         //加载数模
         const objLoader=new OBJLoader()
@@ -237,14 +237,14 @@ export default function DataView() {
                 console.log('an error happend'+error)
             }
         )
-        // var planegeometry = new THREE.PlaneGeometry(1000, 1000, 1);    
-        // var planematerial = new THREE.MeshBasicMaterial({ color: 0xaeb2ae,side: THREE.DoubleSide,transparent: true,opacity: 0,});
-        // var plane = new THREE.Mesh(planegeometry, planematerial);
-        // plane.position.set(0, 0, 1);
-        // scene.add(plane);
+        var planegeometry = new THREE.PlaneGeometry(1000, 1000, 1);    
+        var planematerial = new THREE.MeshBasicMaterial({ color: 0xaeb2ae,side: THREE.DoubleSide,transparent: true,opacity: 0,});
+        var plane = new THREE.Mesh(planegeometry, planematerial);
+        plane.position.set(0, 0, 1);
+        scene.add(plane);
     
         // plane.name='data'
-        const gui2 = new GUI();
+        //const gui2 = new GUI();
         // 添加改变材质的选项
         // gui2.add(planematerial, 'wireframe').onChange((isWireframe) => {
         //     if (isWireframe) {
