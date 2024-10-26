@@ -17,10 +17,14 @@ import { color } from 'three/examples/jsm/nodes/Nodes.js';
 import { func } from 'three/examples/jsm/nodes/code/FunctionNode.js';
 import { RectAreaLightHelper } from 'three/addons/helpers/RectAreaLightHelper.js';
 import { RectAreaLightUniformsLib } from 'three/addons/lights/RectAreaLightUniformsLib.js';
+import Stats from 'three/addons/libs/stats.module.js';
 export default function DataView() {
     const [width,setWidth]=useState(window.innerWidth)
     const [height,setHeight]=useState(window.innerHeight-120)
-    var camera ,scene,controls,renderer,gui
+    let controls,gui,geometry
+    let planes, planeObjects, planeHelpers;
+    let camera, scene, renderer, object, stats;
+    let clock;
     
     //相机参数
     const width_canvas=width
@@ -32,10 +36,15 @@ export default function DataView() {
         gui=new GUI()
         renderer=new THREE.WebGLRenderer({
             canvas:document.getElementById('containercanvas'),
-            alpha: true
+            alpha: true,
+            antialias: true, 
+            stencil: true
         })
         renderer.setSize(width_canvas , height_canvas)
-        renderer.setClearColor('#88B9DD',.2)     
+   
+        renderer.setPixelRatio( window.devicePixelRatio );
+        
+        renderer.localClippingEnabled = true;  
         //辅助坐标系
         const axisHelper=new THREE.AxesHelper(100)
         scene.add(axisHelper)
@@ -46,15 +55,12 @@ export default function DataView() {
         gridHelper.rotateX(THREE.MathUtils.degToRad(90))
         //scene.add(gridHelper)
         const myAxes=new Axes
-        scene.add(myAxes)
-    
+        //scene.add(myAxes)
+        // Stats
+        // stats = new Stats();
+        // document.body.appendChild( stats.dom );
         // 渲染循环
-        function animate() {
-        requestAnimationFrame(animate);  
-        renderer.render(scene, camera);
-        }
-    
-        animate();
+        
         
     }
     function initCamera(){
@@ -103,23 +109,26 @@ export default function DataView() {
 
     }
     function initModel(){
+        object = new THREE.Group();
+		scene.add( object );
         // 添加物体
         const floorgeometry=new THREE.PlaneGeometry(5000,3000)
         const floormaterial = new THREE.MeshBasicMaterial({ color: 0x4d4d4d });
-        const geometry = new THREE.BoxGeometry(1000,1500,1000);
-        const material = new THREE.MeshStandardMaterial( { color: 0x0000ff, roughness: 0.1, metalness: 0.5 } );
+        geometry = new THREE.BoxGeometry(1000,1500,1000);
+        const material = new THREE.MeshStandardMaterial( { color: 0x0000ff, roughness: 0.1, metalness: 0.5} );
         const cube = new THREE.Mesh(geometry, material);
         const floor=new THREE.Mesh(floorgeometry, floormaterial);
-        cube.position.set(0,0,500)
+        cube.position.set(0,0,0)
         floor.position.set(0,0,-10)
         
-        scene.add(floor)
+        //scene.add(floor)
         //线框
         const edges=new THREE.EdgesGeometry(geometry)
         const edgesMaterial=new THREE.LineBasicMaterial({color:0x00ffff})
         const linemodel=new THREE.LineSegments(edges,edgesMaterial)
         cube.add(linemodel)
-        scene.add(cube);
+        //object.add( cube );
+        
         // 创建GUI
         
         const Modelgui = gui.addFolder('模型控制');
@@ -135,6 +144,7 @@ export default function DataView() {
         Modelgui.add(material, 'roughness', 0, 1).onChange((value) => {
             material.roughness = value;
         }).name('粗糙度');
+        
     
     }
     function initControl(){
@@ -229,7 +239,201 @@ export default function DataView() {
                 );
         }
     }
-    
+    function clipModel(){
+        const params = {
+
+            animate: true,
+            planeX: {
+
+                constant: 0,
+                negated: false,
+                displayHelper: false
+
+            },
+            planeY: {
+
+                constant: 0,
+                negated: false,
+                displayHelper: false
+
+            },
+            planeZ: {
+
+                constant: 0,
+                negated: false,
+                displayHelper: false
+
+            }
+
+
+        };
+        function createPlaneStencilGroup( geometry, plane, renderOrder ) {
+
+            const group = new THREE.Group();
+            const baseMat = new THREE.MeshBasicMaterial();
+            baseMat.depthWrite = false;
+            baseMat.depthTest = false;
+            baseMat.colorWrite = false;
+            baseMat.stencilWrite = true;
+            baseMat.stencilFunc = THREE.AlwaysStencilFunc;
+
+            // back faces
+            const mat0 = baseMat.clone();
+            mat0.side = THREE.BackSide;
+            mat0.clippingPlanes = [ plane ];
+            mat0.stencilFail = THREE.IncrementWrapStencilOp;
+            mat0.stencilZFail = THREE.IncrementWrapStencilOp;
+            mat0.stencilZPass = THREE.IncrementWrapStencilOp;
+
+            const mesh0 = new THREE.Mesh( geometry, mat0 );
+            mesh0.renderOrder = renderOrder;
+            group.add( mesh0 );
+
+            // front faces
+            const mat1 = baseMat.clone();
+            mat1.side = THREE.FrontSide;
+            mat1.clippingPlanes = [ plane ];
+            mat1.stencilFail = THREE.DecrementWrapStencilOp;
+            mat1.stencilZFail = THREE.DecrementWrapStencilOp;
+            mat1.stencilZPass = THREE.DecrementWrapStencilOp;
+
+            const mesh1 = new THREE.Mesh( geometry, mat1 );
+            mesh1.renderOrder = renderOrder;
+
+            group.add( mesh1 );
+
+            return group;
+
+        }
+        planes = [
+            new THREE.Plane( new THREE.Vector3( - 1, 0, 0 ), 0 ),
+            new THREE.Plane( new THREE.Vector3( 0, - 1, 0 ), 0 ),
+            new THREE.Plane( new THREE.Vector3( 0, 0, - 1 ), 0 )
+        ];
+
+        planeHelpers = planes.map( p => new THREE.PlaneHelper( p, 20000, 0xffffff ) );
+        planeHelpers.forEach( ph => {
+
+            ph.visible = false;
+            scene.add( ph );
+
+        } );
+        
+        // Set up clip plane rendering
+        planeObjects = [];
+        const planeGeom = new THREE.PlaneGeometry( 4000, 4000 );
+
+        for ( let i = 0; i < 3; i ++ ) {
+
+            const poGroup = new THREE.Group();
+            const plane = planes[ i ];
+            const stencilGroup = createPlaneStencilGroup( geometry, plane, i + 1 );
+
+            // plane is clipped by the other clipping planes
+            const planeMat =
+                new THREE.MeshStandardMaterial( {
+
+                    color: 0xE91E63,
+                    metalness: 0.1,
+                    roughness: 0.75,
+                    clippingPlanes: planes.filter( p => p !== plane ),
+
+                    stencilWrite: true,
+                    stencilRef: 0,
+                    stencilFunc: THREE.NotEqualStencilFunc,
+                    stencilFail: THREE.ReplaceStencilOp,
+                    stencilZFail: THREE.ReplaceStencilOp,
+                    stencilZPass: THREE.ReplaceStencilOp,
+
+                } );
+            const po = new THREE.Mesh( planeGeom, planeMat );
+            po.onAfterRender = function ( renderer ) {
+
+                renderer.clearStencil();
+
+            };
+
+            po.renderOrder = i + 1.1;
+
+            object.add( stencilGroup );
+            poGroup.add( po );
+            planeObjects.push( po );
+            scene.add( poGroup );
+
+        }
+        const innermaterial = new THREE.MeshStandardMaterial( {
+
+            color: 0xFFC107,
+            metalness: 0.1,
+            roughness: 0.75,
+            clippingPlanes: planes,
+            clipShadows: true,
+            shadowSide: THREE.DoubleSide,
+
+        } );
+
+        // add the color
+        const clippedColorFront = new THREE.Mesh( geometry, innermaterial );
+        clippedColorFront.castShadow = true;
+        clippedColorFront.renderOrder = 6;
+        object.add( clippedColorFront );
+        // GUI
+        
+        gui.add( params, 'animate' );
+
+        const planeX = gui.addFolder( 'planeX' );
+        planeX.add( params.planeX, 'displayHelper' ).onChange( v => planeHelpers[ 0 ].visible = v );
+        planeX.add( params.planeX, 'constant' ).min( - 1500 ).max( 1500 ).onChange( d => planes[ 0 ].constant = d );
+        planeX.add( params.planeX, 'negated' ).onChange( () => {
+
+            planes[ 0 ].negate();
+            params.planeX.constant = planes[ 0 ].constant;
+
+        } );
+        planeX.open();
+
+        const planeY = gui.addFolder( 'planeY' );
+        planeY.add( params.planeY, 'displayHelper' ).onChange( v => planeHelpers[ 1 ].visible = v );
+        planeY.add( params.planeY, 'constant' ).min( - 1500 ).max( 1500 ).onChange( d => planes[ 1 ].constant = d );
+        planeY.add( params.planeY, 'negated' ).onChange( () => {
+
+            planes[ 1 ].negate();
+            params.planeY.constant = planes[ 1 ].constant;
+
+        } );
+        planeY.open();
+
+        const planeZ = gui.addFolder( 'planeZ' );
+        planeZ.add( params.planeZ, 'displayHelper' ).onChange( v => planeHelpers[ 2 ].visible = v );
+        planeZ.add( params.planeZ, 'constant' ).min( - 1500 ).max( 1500 ).onChange( d => planes[ 2 ].constant = d );
+        planeZ.add( params.planeZ, 'negated' ).onChange( () => {
+
+            planes[ 2 ].negate();
+            params.planeZ.constant = planes[ 2 ].constant;
+
+        } );
+        planeZ.open();
+       
+    }
+    function animate() {
+        requestAnimationFrame(animate);  
+        
+        for ( let i = 0; i < planeObjects.length; i ++ ) {
+
+            const plane = planes[ i ];
+            const po = planeObjects[ i ];
+            plane.coplanarPoint( po.position );
+            po.lookAt(
+                po.position.x - plane.normal.x,
+                po.position.y - plane.normal.y,
+                po.position.z - plane.normal.z,
+            );
+
+        }
+        renderer.render(scene, camera);
+        
+    }
+
     
     useEffect(()=>{
         initSence()
@@ -237,6 +441,9 @@ export default function DataView() {
         initControl()
         initLight()
         initModel()
+        clipModel()
+        animate();
+        
         return()=>{
             
             
