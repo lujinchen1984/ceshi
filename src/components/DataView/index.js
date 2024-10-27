@@ -4,6 +4,7 @@ import { SphereGeometry, CylinderGeometry, Group, Mesh, MeshStandardMaterial } f
 import TWEEN from '@tweenjs/tween.js'
 import {OrbitControls} from "three/examples/jsm/controls/OrbitControls"
 import { ArcballControls } from 'three/addons/controls/ArcballControls.js';
+
 import {OBJLoader} from 'three/examples/jsm/loaders/OBJLoader'
 //导入hdr图像加载器
 import { RGBELoader } from "three/examples/jsm/loaders/RGBELoader";//rebe加载器
@@ -22,9 +23,9 @@ export default function DataView() {
     const [width,setWidth]=useState(window.innerWidth)
     const [height,setHeight]=useState(window.innerHeight-120)
     let controls,gui,material,geometry,edgesMaterial
-    let planes, planeObjects, planeHelpers;
-    let camera, scene, renderer, object, stats;
-    let clock;
+    let planes, planeHelpers;
+    let camera, scene, renderer, object, cube;
+    let clickPosition,measureParams;
     
     //相机参数
     const width_canvas=width
@@ -74,6 +75,7 @@ export default function DataView() {
         
         // 将控制对象的backgroundColor属性添加到GUI
         scenegui.addColor(backcolor, 'backgroundColor').onChange(backcolor.updateBackgroundColor).name('背景色');
+        
     
         
     }
@@ -127,12 +129,12 @@ export default function DataView() {
 		scene.add( object );
         // 添加物体
         const floorgeometry=new THREE.PlaneGeometry(5000,3000)
-        const floormaterial = new THREE.MeshBasicMaterial({ color: 0x4d4d4d });
+        const floormaterial = new THREE.MeshBasicMaterial({ color: 0x4d4d4d,side:THREE.DoubleSide });
         geometry = new THREE.BoxGeometry(1000,1500,1000);
         material = new THREE.MeshStandardMaterial( { color: 0x0000ff, roughness: 0.1, metalness: 0.5} );
-        const cube = new THREE.Mesh(geometry, material);
+        cube = new THREE.Mesh(geometry, material);
         const floor=new THREE.Mesh(floorgeometry, floormaterial);
-        cube.position.set(0,0,0)
+        cube.position.set(0,0,550)
         floor.position.set(0,0,-10)
         
         scene.add(floor)
@@ -167,6 +169,7 @@ export default function DataView() {
         controls.rotateSpeed=3
         controls.addEventListener( 'change', function () {
             renderer.render( scene, camera );
+            
         } );
     }
     function initLight(){
@@ -262,231 +265,6 @@ export default function DataView() {
                 );
         }
     }
-    function clipModel(){
-        const params = {
-
-            animate: true,
-            planeX: {
-
-                constant: 0,
-                negated: false,
-                displayHelper: false
-
-            },
-            planeY: {
-
-                constant: 0,
-                negated: false,
-                displayHelper: false
-
-            },
-            planeZ: {
-
-                constant: 0,
-                negated: false,
-                displayHelper: false
-
-            }
-
-
-        };
-        function createPlaneStencilGroup( geometry, plane, renderOrder ) {
-
-            const group = new THREE.Group();
-            const baseMat = new THREE.MeshBasicMaterial();
-            baseMat.depthWrite = false;
-            baseMat.depthTest = false;
-            baseMat.colorWrite = false;
-            baseMat.stencilWrite = true;
-            baseMat.stencilFunc = THREE.AlwaysStencilFunc;
-
-            // back faces
-            const mat0 = baseMat.clone();
-            mat0.side = THREE.BackSide;
-            mat0.clippingPlanes = [ plane ];
-            mat0.stencilFail = THREE.IncrementWrapStencilOp;
-            mat0.stencilZFail = THREE.IncrementWrapStencilOp;
-            mat0.stencilZPass = THREE.IncrementWrapStencilOp;
-
-            const mesh0 = new THREE.Mesh( geometry, mat0 );
-            mesh0.renderOrder = renderOrder;
-            group.add( mesh0 );
-
-            // front faces
-            const mat1 = baseMat.clone();
-            mat1.side = THREE.FrontSide;
-            mat1.clippingPlanes = [ plane ];
-            mat1.stencilFail = THREE.DecrementWrapStencilOp;
-            mat1.stencilZFail = THREE.DecrementWrapStencilOp;
-            mat1.stencilZPass = THREE.DecrementWrapStencilOp;
-
-            const mesh1 = new THREE.Mesh( geometry, mat1 );
-            mesh1.renderOrder = renderOrder;
-
-            group.add( mesh1 );
-
-            return group;
-
-        }
-        planes = [
-            new THREE.Plane( new THREE.Vector3( - 1, 0, 0 ), 0 ),
-            new THREE.Plane( new THREE.Vector3( 0, - 1, 0 ), 0 ),
-            new THREE.Plane( new THREE.Vector3( 0, 0, - 1 ), 0 )
-        ];
-
-        planeHelpers = planes.map( p => new THREE.PlaneHelper( p, 20000, 0xffffff ) );
-        planeHelpers.forEach( ph => {
-
-            ph.visible = false;
-            scene.add( ph );
-
-        } );
-        
-        // Set up clip plane rendering
-        planeObjects = [];
-        const planeGeom = new THREE.PlaneGeometry( 4000, 4000 );
-
-        for ( let i = 0; i < 3; i ++ ) {
-
-            const poGroup = new THREE.Group();
-            const plane = planes[ i ];
-            const stencilGroup = createPlaneStencilGroup( geometry, plane, i + 1 );
-
-            // plane is clipped by the other clipping planes
-            const planeMat =
-                new THREE.MeshStandardMaterial( {
-
-                    color: 0xE91E63,
-                    metalness: 0.1,
-                    roughness: 0.75,
-                    clippingPlanes: planes.filter( p => p !== plane ),
-
-                    stencilWrite: true,
-                    stencilRef: 0,
-                    stencilFunc: THREE.NotEqualStencilFunc,
-                    stencilFail: THREE.ReplaceStencilOp,
-                    stencilZFail: THREE.ReplaceStencilOp,
-                    stencilZPass: THREE.ReplaceStencilOp,
-
-                } );
-            const po = new THREE.Mesh( planeGeom, planeMat );
-            po.onAfterRender = function ( renderer ) {
-
-                renderer.clearStencil();
-
-            };
-
-            po.renderOrder = i + 1.1;
-
-            object.add( stencilGroup );
-            poGroup.add( po );
-            planeObjects.push( po );
-            scene.add( poGroup );
-
-        }
-        const innermaterial = new THREE.MeshStandardMaterial( {
-
-            color: 0xFFC107,
-            metalness: 0.1,
-            roughness: 0.75,
-            clippingPlanes: planes,
-            clipShadows: true,
-            shadowSide: THREE.DoubleSide,
-
-        } );
-
-        // add the color
-        const clippedColorFront = new THREE.Mesh( geometry, innermaterial );
-        clippedColorFront.castShadow = true;
-        clippedColorFront.renderOrder = 6;
-        object.add( clippedColorFront );
-        // GUI
-        
-        gui.add( params, 'animate' );
-
-        const planeX = gui.addFolder( 'planeX' );
-        planeX.add( params.planeX, 'displayHelper' ).onChange( v => planeHelpers[ 0 ].visible = v );
-        planeX.add( params.planeX, 'constant' ).min( - 1500 ).max( 1500 ).onChange( d => planes[ 0 ].constant = d );
-        planeX.add( params.planeX, 'negated' ).onChange( () => {
-
-            planes[ 0 ].negate();
-            params.planeX.constant = planes[ 0 ].constant;
-
-        } );
-        planeX.open();
-
-        const planeY = gui.addFolder( 'planeY' );
-        planeY.add( params.planeY, 'displayHelper' ).onChange( v => planeHelpers[ 1 ].visible = v );
-        planeY.add( params.planeY, 'constant' ).min( - 1500 ).max( 1500 ).onChange( d => planes[ 1 ].constant = d );
-        planeY.add( params.planeY, 'negated' ).onChange( () => {
-
-            planes[ 1 ].negate();
-            params.planeY.constant = planes[ 1 ].constant;
-
-        } );
-        planeY.open();
-
-        const planeZ = gui.addFolder( 'planeZ' );
-        planeZ.add( params.planeZ, 'displayHelper' ).onChange( v => planeHelpers[ 2 ].visible = v );
-        planeZ.add( params.planeZ, 'constant' ).min( - 1500 ).max( 1500 ).onChange( d => planes[ 2 ].constant = d );
-        planeZ.add( params.planeZ, 'negated' ).onChange( () => {
-
-            planes[ 2 ].negate();
-            params.planeZ.constant = planes[ 2 ].constant;
-
-        } );
-        planeZ.open();
-       
-    }
-    function clipAll(){
-        const params = {
-
-            animate: true,
-            planeX: {
-
-                constant: 0,
-                negated: false,
-                displayHelper: false
-
-            },
-            planeY: {
-
-                constant: 0,
-                negated: false,
-                displayHelper: false
-
-            },
-            planeZ: {
-
-                constant: 0,
-                negated: false,
-                displayHelper: false
-
-            }
-
-
-        };
-        // 设置剪裁平面
-        const clippingPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0); // 定义一个剪裁平面
-        planeHelpers =  new THREE.PlaneHelper( clippingPlane, 20000, 0xffffff ) ;
-        scene.add(planeHelpers)
-        material.clippingPlanes=[clippingPlane]
-        edgesMaterial.clippingPlanes=[clippingPlane]
-        material.side=THREE.DoubleSide
-        const planeX = gui.addFolder( 'planeX' );
-        planeX.add( params.planeX, 'displayHelper' ).onChange( v => planeHelpers.visible = v );
-        planeX.add( params.planeX, 'constant' ).min( - 1500 ).max( 1500 ).onChange( d => clippingPlane.constant = d );
-        planeX.add( params.planeX, 'negated' ).onChange( () => {
-
-            clippingPlane.negate();
-            params.planeX.constant = clippingPlane.constant;
-
-        } );
-        renderer.localClippingEnabled = true;  
-
-        
- 
-    }
     function initClipping(){
         const params = {
 
@@ -528,51 +306,13 @@ export default function DataView() {
             scene.add( ph );
 
         } );
-        // material.clippingPlanes=planes
-        // edgesMaterial.clippingPlanes=planes
-        // material.side=THREE.DoubleSide
-
-        // const clippinggui = gui.addFolder( '剖面设置' );
-
-        // const planeX = clippinggui.addFolder( 'planeX' );
-        // planeX.add( params.planeX, 'displayHelper' ).onChange( v => planeHelpers[ 0 ].visible = v );
-        // planeX.add( params.planeX, 'constant' ).min( - 1500 ).max( 1500 ).onChange( d => planes[ 0 ].constant = d );
-        // planeX.add( params.planeX, 'negated' ).onChange( () => {
-
-        //     planes[ 0 ].negate();
-        //     params.planeX.constant = planes[ 0 ].constant;
-
-        // } );
-        // planeX.open();
-
-        // const planeY = clippinggui.addFolder( 'planeY' );
-        // planeY.add( params.planeY, 'displayHelper' ).onChange( v => planeHelpers[ 1 ].visible = v );
-        // planeY.add( params.planeY, 'constant' ).min( - 1500 ).max( 1500 ).onChange( d => planes[ 1 ].constant = d );
-        // planeY.add( params.planeY, 'negated' ).onChange( () => {
-
-        //     planes[ 1 ].negate();
-        //     params.planeY.constant = planes[ 1 ].constant;
-
-        // } );
-        // planeY.open();
-
-        // const planeZ = clippinggui.addFolder( 'planeZ' );
-        // planeZ.add( params.planeZ, 'displayHelper' ).onChange( v => planeHelpers[ 2 ].visible = v );
-        // planeZ.add( params.planeZ, 'constant' ).min( - 1500 ).max( 1500 ).onChange( d => planes[ 2 ].constant = d );
-        // planeZ.add( params.planeZ, 'negated' ).onChange( () => {
-
-        //     planes[ 2 ].negate();
-        //     params.planeZ.constant = planes[ 2 ].constant;
-
-        // } );
-        // planeZ.open();
-        // renderer.localClippingEnabled = true;  
-        // 创建GUI控制项
+        
         const clippinggui = gui.addFolder( '剖面设置' );
         const Xclip = clippinggui.addFolder( 'X剖面' );
         Xclip.add(renderer, 'localClippingEnabled').onChange((enabled) => {
             if (enabled) {
             material.clippingPlanes = [planes[0]];
+            edgesMaterial.clippingPlanes = [planes[0]];
             material.side=THREE.DoubleSide
             } else {
             material.clippingPlanes = [];
@@ -592,6 +332,7 @@ export default function DataView() {
         Yclip.add(renderer, 'localClippingEnabled').onChange((enabled) => {
             if (enabled) {
             material.clippingPlanes = [planes[1]];
+            edgesMaterial.clippingPlanes = [planes[0]];
             material.side=THREE.DoubleSide
             } else {
             material.clippingPlanes = [];
@@ -611,6 +352,7 @@ export default function DataView() {
         Zclip.add(renderer, 'localClippingEnabled').onChange((enabled) => {
             if (enabled) {
             material.clippingPlanes = [planes[2]];
+            edgesMaterial.clippingPlanes = [planes[0]];
             material.side=THREE.DoubleSide
             } else {
             material.clippingPlanes = [];
@@ -626,6 +368,134 @@ export default function DataView() {
         } ).name('显示反向');
         Zclip.open();
     }
+    function initMeasure(){
+        measureParams = {
+            start_measure: false,
+        }
+        const measuregui = gui.addFolder( '测量选项' );
+        measuregui.add(measureParams, 'start_measure').onChange((enabled) => {
+            if (enabled) {
+                measureParams.start_measure=true
+            } else {
+                measureParams.start_measure=false
+            }
+        }).name('开启测量');
+        function getClickPosition(event) {
+            if(measureParams.start_measure){
+                const raycaster = new THREE.Raycaster();
+                const mouse = new THREE.Vector2();     
+                // 将鼠标位置转换成归一化设备坐标(-1 到 +1)
+                mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+                mouse.y = -((event.clientY-65)/ (window.innerHeight-120)) * 2 + 1;           
+                // 使用鼠标位置和相机进行射线投射
+                raycaster.setFromCamera(mouse, camera);           
+                // 计算物体和射线的交点
+                const intersects = raycaster.intersectObjects([object]);            
+                if (intersects.length > 0) {
+                    // 取第一个交点
+                    const intersection = intersects[0];  
+
+                    console.log(intersection)
+                    // 获取交点的坐标
+                    const position = intersection.point;
+                    // 获取交点的法向量
+                    console.log(position)
+                    const normal = intersection.face.normal;
+                    //console.log('Clicked normal:', normal);
+                    var color = 0x0000ff; // 箭头颜色
+                    // 创建ArrowHelper对象
+                    var arrow = new THREE.ArrowHelper(normal, position, 100, color); // 1表示箭头的长度为1单位
+                    // 将箭头添加到场景中
+                    scene.add(arrow);           
+                }
+    
+            }
+            
+        }
+        
+        document.addEventListener('click', getClickPosition, false);
+    }
+    // 获取点击位置的函数
+    function initMeasure2(){
+        measureParams = {
+            start_measure: false,
+        }
+        const measuregui = gui.addFolder( '测量选项' );
+        measuregui.add(measureParams, 'start_measure').onChange((enabled) => {
+            if (enabled) {
+                measureParams.start_measure=true
+            } else {
+                measureParams.start_measure=false
+            }
+        }).name('开启测量');
+        function getClickPosition(event) {
+            if(measureParams.start_measure){
+                const raycaster = new THREE.Raycaster();
+                const mouse = new THREE.Vector2();     
+                // 将鼠标位置转换成归一化设备坐标(-1 到 +1)
+                mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+                mouse.y = -((event.clientY-65)/ (window.innerHeight-120)) * 2 + 1;           
+                // 使用鼠标位置和相机进行射线投射
+                raycaster.setFromCamera(mouse, camera);           
+                // 计算物体和射线的交点
+                const intersects = raycaster.intersectObjects([object]);            
+                if (intersects.length > 0) {
+                    // 取第一个交点
+                    const intersection = intersects[0];  
+                    // 获取交点的坐标
+                    const position = intersection.point;
+                    // 获取交点的法向量
+                    const normal = intersection.face.normal;
+                    //console.log('Clicked normal:', normal);
+                    var color = 0x0000ff; // 箭头颜色
+                    // 创建ArrowHelper对象
+                    var arrow = new THREE.ArrowHelper(normal, position, 100, color); // 1表示箭头的长度为1单位
+                    // 将箭头添加到场景中
+                    scene.add(arrow);    
+                    return  position      
+                }else{
+                    return null
+                }
+    
+            }
+
+            
+        }
+        // 通过鼠标按下抬起的时间差或者说距离差，来区分判断是鼠标拖动事件，还是鼠标拖动旋转事件
+        let points_dis=[]
+        let L
+        let mousedownX = 0;
+        let mousedownY = 0;
+        renderer.domElement.addEventListener('mousedown', function (event) {
+            if(measureParams.start_measure){
+                mousedownX = event.offsetX;
+                mousedownY = event.offsetX;
+            }
+        })
+        renderer.domElement.addEventListener('mouseup', function (event) {
+            if(measureParams.start_measure){
+                const x = event.offsetX;
+                const y = event.offsetX;
+                console.log(points_dis)
+                if(Math.abs(x-mousedownX)<1 && Math.abs(y-mousedownY)<1){
+                    if(points_dis.length<2){
+                        points_dis.push(getClickPosition(event))
+                        console.log(points_dis)
+                        if(points_dis.length==2){
+                            console.log(points_dis)
+                            L = points_dis[0].distanceTo(points_dis[1]).toFixed(2);                  
+                            console.log('L', L);
+                            points_dis=[]
+                        }
+                        
+                    }else{
+                        points_dis=[]
+                    }          
+                }
+            }
+        })
+
+    }
     function animate() {
         requestAnimationFrame(animate);  
         renderer.render(scene, camera);
@@ -640,8 +510,9 @@ export default function DataView() {
         initLight()
         initModel()
         initClipping()
+        initMeasure2()
         animate();
-        
+
         return()=>{
             
             
