@@ -368,55 +368,9 @@ export default function DataView() {
         } ).name('显示反向');
         Zclip.open();
     }
-    function initMeasure(){
-        measureParams = {
-            start_measure: false,
-        }
-        const measuregui = gui.addFolder( '测量选项' );
-        measuregui.add(measureParams, 'start_measure').onChange((enabled) => {
-            if (enabled) {
-                measureParams.start_measure=true
-            } else {
-                measureParams.start_measure=false
-            }
-        }).name('开启测量');
-        function getClickPosition(event) {
-            if(measureParams.start_measure){
-                const raycaster = new THREE.Raycaster();
-                const mouse = new THREE.Vector2();     
-                // 将鼠标位置转换成归一化设备坐标(-1 到 +1)
-                mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-                mouse.y = -((event.clientY-65)/ (window.innerHeight-120)) * 2 + 1;           
-                // 使用鼠标位置和相机进行射线投射
-                raycaster.setFromCamera(mouse, camera);           
-                // 计算物体和射线的交点
-                const intersects = raycaster.intersectObjects([object]);            
-                if (intersects.length > 0) {
-                    // 取第一个交点
-                    const intersection = intersects[0];  
 
-                    console.log(intersection)
-                    // 获取交点的坐标
-                    const position = intersection.point;
-                    // 获取交点的法向量
-                    console.log(position)
-                    const normal = intersection.face.normal;
-                    //console.log('Clicked normal:', normal);
-                    var color = 0x0000ff; // 箭头颜色
-                    // 创建ArrowHelper对象
-                    var arrow = new THREE.ArrowHelper(normal, position, 100, color); // 1表示箭头的长度为1单位
-                    // 将箭头添加到场景中
-                    scene.add(arrow);           
-                }
-    
-            }
-            
-        }
-        
-        document.addEventListener('click', getClickPosition, false);
-    }
     // 获取点击位置的函数
-    function initMeasure2(){
+    function initMeasure(){
         measureParams = {
             start_measure: false,
         }
@@ -479,14 +433,17 @@ export default function DataView() {
                 console.log(points_dis)
                 if(Math.abs(x-mousedownX)<1 && Math.abs(y-mousedownY)<1){
                     if(points_dis.length<2){
-                        points_dis.push(getClickPosition(event))
-                        console.log(points_dis)
-                        if(points_dis.length==2){
+                        if(getClickPosition(event)!=null){
+                            points_dis.push(getClickPosition(event))
                             console.log(points_dis)
-                            L = points_dis[0].distanceTo(points_dis[1]).toFixed(2);                  
-                            console.log('L', L);
-                            points_dis=[]
+                            if(points_dis.length==2){
+                                console.log(points_dis)
+                                L = points_dis[0].distanceTo(points_dis[1]).toFixed(2);                  
+                                console.log('L', L);
+                                points_dis=[]
+                            }
                         }
+                        
                         
                     }else{
                         points_dis=[]
@@ -510,7 +467,7 @@ export default function DataView() {
         initLight()
         initModel()
         initClipping()
-        initMeasure2()
+        initMeasure()
         animate();
 
         return()=>{
