@@ -21,7 +21,7 @@ import Stats from 'three/addons/libs/stats.module.js';
 export default function DataView() {
     const [width,setWidth]=useState(window.innerWidth)
     const [height,setHeight]=useState(window.innerHeight-120)
-    let controls,gui,geometry
+    let controls,gui,material,geometry,edgesMaterial
     let planes, planeObjects, planeHelpers;
     let camera, scene, renderer, object, stats;
     let clock;
@@ -44,7 +44,7 @@ export default function DataView() {
    
         renderer.setPixelRatio( window.devicePixelRatio );
         
-        renderer.localClippingEnabled = true;  
+        
         //辅助坐标系
         const axisHelper=new THREE.AxesHelper(100)
         scene.add(axisHelper)
@@ -60,7 +60,21 @@ export default function DataView() {
         // stats = new Stats();
         // document.body.appendChild( stats.dom );
         // 渲染循环
+        // 创建背景色控制器
+        renderer.setClearColor(0x888888, 1); 
+        const scenegui = gui.addFolder('背景色');
+        // 创建一个控制对象
+        const backcolor = {
+            backgroundColor: 0x888888, // 初始背景颜色设置为白色
+            updateBackgroundColor: function () {
+            // 使用控制对象中的颜色来更新场景的背景色
+            scene.background = new THREE.Color(backcolor.backgroundColor);
+            }
+        };
         
+        // 将控制对象的backgroundColor属性添加到GUI
+        scenegui.addColor(backcolor, 'backgroundColor').onChange(backcolor.updateBackgroundColor).name('背景色');
+    
         
     }
     function initCamera(){
@@ -115,19 +129,19 @@ export default function DataView() {
         const floorgeometry=new THREE.PlaneGeometry(5000,3000)
         const floormaterial = new THREE.MeshBasicMaterial({ color: 0x4d4d4d });
         geometry = new THREE.BoxGeometry(1000,1500,1000);
-        const material = new THREE.MeshStandardMaterial( { color: 0x0000ff, roughness: 0.1, metalness: 0.5} );
+        material = new THREE.MeshStandardMaterial( { color: 0x0000ff, roughness: 0.1, metalness: 0.5} );
         const cube = new THREE.Mesh(geometry, material);
         const floor=new THREE.Mesh(floorgeometry, floormaterial);
         cube.position.set(0,0,0)
         floor.position.set(0,0,-10)
         
-        //scene.add(floor)
+        scene.add(floor)
         //线框
         const edges=new THREE.EdgesGeometry(geometry)
-        const edgesMaterial=new THREE.LineBasicMaterial({color:0x00ffff})
+        edgesMaterial=new THREE.LineBasicMaterial({color:0x00ffff})
         const linemodel=new THREE.LineSegments(edges,edgesMaterial)
         cube.add(linemodel)
-        //object.add( cube );
+        object.add( cube );
         
         // 创建GUI
         
@@ -159,6 +173,15 @@ export default function DataView() {
         // 创建环境光
         const ambientLight = new THREE.AmbientLight(0x404040,5); // 灰色的环境光
         scene.add(ambientLight);
+        //添加平行光并改变其位置
+        let directionLight = new THREE.DirectionalLight();
+        scene.add(directionLight)
+        directionLight.position.set(5000,5000,5000);
+
+		//添加平行光辅助器展示平行光的位置
+        let directionLightHelper = new THREE.DirectionalLightHelper(directionLight,1,0xff0000);
+        scene.add(directionLightHelper);
+
         RectAreaLightUniformsLib.init();
         // 创建灯光组
         const LeftlightGroup = new THREE.Group();
@@ -415,21 +438,196 @@ export default function DataView() {
         planeZ.open();
        
     }
+    function clipAll(){
+        const params = {
+
+            animate: true,
+            planeX: {
+
+                constant: 0,
+                negated: false,
+                displayHelper: false
+
+            },
+            planeY: {
+
+                constant: 0,
+                negated: false,
+                displayHelper: false
+
+            },
+            planeZ: {
+
+                constant: 0,
+                negated: false,
+                displayHelper: false
+
+            }
+
+
+        };
+        // 设置剪裁平面
+        const clippingPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0); // 定义一个剪裁平面
+        planeHelpers =  new THREE.PlaneHelper( clippingPlane, 20000, 0xffffff ) ;
+        scene.add(planeHelpers)
+        material.clippingPlanes=[clippingPlane]
+        edgesMaterial.clippingPlanes=[clippingPlane]
+        material.side=THREE.DoubleSide
+        const planeX = gui.addFolder( 'planeX' );
+        planeX.add( params.planeX, 'displayHelper' ).onChange( v => planeHelpers.visible = v );
+        planeX.add( params.planeX, 'constant' ).min( - 1500 ).max( 1500 ).onChange( d => clippingPlane.constant = d );
+        planeX.add( params.planeX, 'negated' ).onChange( () => {
+
+            clippingPlane.negate();
+            params.planeX.constant = clippingPlane.constant;
+
+        } );
+        renderer.localClippingEnabled = true;  
+
+        
+ 
+    }
+    function initClipping(){
+        const params = {
+
+            animate: true,
+            planeX: {
+
+                constant: 0,
+                negated: false,
+                displayHelper: false
+
+            },
+            planeY: {
+
+                constant: 0,
+                negated: false,
+                displayHelper: false
+
+            },
+            planeZ: {
+
+                constant: 0,
+                negated: false,
+                displayHelper: false
+
+            }
+
+
+        };
+        planes = [
+            new THREE.Plane( new THREE.Vector3( - 1, 0, 0 ), 0 ),
+            new THREE.Plane( new THREE.Vector3( 0, - 1, 0 ), 0 ),
+            new THREE.Plane( new THREE.Vector3( 0, 0, - 1 ), 0 )
+        ];
+
+        planeHelpers = planes.map( p => new THREE.PlaneHelper( p, 20000, 0xffffff ) );
+        planeHelpers.forEach( ph => {
+
+            ph.visible = false;
+            scene.add( ph );
+
+        } );
+        // material.clippingPlanes=planes
+        // edgesMaterial.clippingPlanes=planes
+        // material.side=THREE.DoubleSide
+
+        // const clippinggui = gui.addFolder( '剖面设置' );
+
+        // const planeX = clippinggui.addFolder( 'planeX' );
+        // planeX.add( params.planeX, 'displayHelper' ).onChange( v => planeHelpers[ 0 ].visible = v );
+        // planeX.add( params.planeX, 'constant' ).min( - 1500 ).max( 1500 ).onChange( d => planes[ 0 ].constant = d );
+        // planeX.add( params.planeX, 'negated' ).onChange( () => {
+
+        //     planes[ 0 ].negate();
+        //     params.planeX.constant = planes[ 0 ].constant;
+
+        // } );
+        // planeX.open();
+
+        // const planeY = clippinggui.addFolder( 'planeY' );
+        // planeY.add( params.planeY, 'displayHelper' ).onChange( v => planeHelpers[ 1 ].visible = v );
+        // planeY.add( params.planeY, 'constant' ).min( - 1500 ).max( 1500 ).onChange( d => planes[ 1 ].constant = d );
+        // planeY.add( params.planeY, 'negated' ).onChange( () => {
+
+        //     planes[ 1 ].negate();
+        //     params.planeY.constant = planes[ 1 ].constant;
+
+        // } );
+        // planeY.open();
+
+        // const planeZ = clippinggui.addFolder( 'planeZ' );
+        // planeZ.add( params.planeZ, 'displayHelper' ).onChange( v => planeHelpers[ 2 ].visible = v );
+        // planeZ.add( params.planeZ, 'constant' ).min( - 1500 ).max( 1500 ).onChange( d => planes[ 2 ].constant = d );
+        // planeZ.add( params.planeZ, 'negated' ).onChange( () => {
+
+        //     planes[ 2 ].negate();
+        //     params.planeZ.constant = planes[ 2 ].constant;
+
+        // } );
+        // planeZ.open();
+        // renderer.localClippingEnabled = true;  
+        // 创建GUI控制项
+        const clippinggui = gui.addFolder( '剖面设置' );
+        const Xclip = clippinggui.addFolder( 'X剖面' );
+        Xclip.add(renderer, 'localClippingEnabled').onChange((enabled) => {
+            if (enabled) {
+            material.clippingPlanes = [planes[0]];
+            material.side=THREE.DoubleSide
+            } else {
+            material.clippingPlanes = [];
+            }
+        }).name('开启X剖面');
+        Xclip.add( params.planeX, 'displayHelper' ).onChange( v => planeHelpers[ 0 ].visible = v ).name('显示辅助面');
+        Xclip.add( params.planeX, 'constant' ).min( - 1500 ).max( 1500 ).onChange( d => planes[ 0 ].constant = d ).name('位置调整');
+        Xclip.add( params.planeX, 'negated' ).onChange( () => {
+
+            planes[ 0 ].negate();
+            params.planeX.constant = planes[ 0 ].constant;
+
+        } ).name('显示反向');
+        Xclip.open();
+
+        const Yclip = clippinggui.addFolder( 'Y剖面' );
+        Yclip.add(renderer, 'localClippingEnabled').onChange((enabled) => {
+            if (enabled) {
+            material.clippingPlanes = [planes[1]];
+            material.side=THREE.DoubleSide
+            } else {
+            material.clippingPlanes = [];
+            }
+        }).name('开启Y剖面');
+        Yclip.add( params.planeY, 'displayHelper' ).onChange( v => planeHelpers[ 1 ].visible = v ).name('显示辅助面');
+        Yclip.add( params.planeY, 'constant' ).min( - 1500 ).max( 1500 ).onChange( d => planes[ 1 ].constant = d ).name('位置调整');
+        Yclip.add( params.planeY, 'negated' ).onChange( () => {
+
+            planes[ 1 ].negate();
+            params.planeX.constant = planes[ 1 ].constant;
+
+        } ).name('显示反向');
+        Yclip.open();
+
+        const Zclip = clippinggui.addFolder( 'Z剖面' );
+        Zclip.add(renderer, 'localClippingEnabled').onChange((enabled) => {
+            if (enabled) {
+            material.clippingPlanes = [planes[2]];
+            material.side=THREE.DoubleSide
+            } else {
+            material.clippingPlanes = [];
+            }
+        }).name('开启Z剖面');
+        Zclip.add( params.planeZ, 'displayHelper' ).onChange( v => planeHelpers[ 2 ].visible = v ).name('显示辅助面');
+        Zclip.add( params.planeZ, 'constant' ).min( - 1500 ).max( 1500 ).onChange( d => planes[ 2 ].constant = d ).name('位置调整');
+        Zclip.add( params.planeZ, 'negated' ).onChange( () => {
+
+            planes[ 2 ].negate();
+            params.planeX.constant = planes[ 2 ].constant;
+
+        } ).name('显示反向');
+        Zclip.open();
+    }
     function animate() {
         requestAnimationFrame(animate);  
-        
-        for ( let i = 0; i < planeObjects.length; i ++ ) {
-
-            const plane = planes[ i ];
-            const po = planeObjects[ i ];
-            plane.coplanarPoint( po.position );
-            po.lookAt(
-                po.position.x - plane.normal.x,
-                po.position.y - plane.normal.y,
-                po.position.z - plane.normal.z,
-            );
-
-        }
         renderer.render(scene, camera);
         
     }
@@ -441,7 +639,7 @@ export default function DataView() {
         initControl()
         initLight()
         initModel()
-        clipModel()
+        initClipping()
         animate();
         
         return()=>{
